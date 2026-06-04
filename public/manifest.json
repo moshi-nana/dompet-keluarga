@@ -1,0 +1,14 @@
+{
+  "name": "Dompet Keluarga",
+  "short_name": "Dompet",
+  "description": "Pencatatan keuangan rumah tangga dan usaha",
+  "start_url": "/dompet-keluarga/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#16a34a",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/dompet-keluarga/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/dompet-keluarga/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
