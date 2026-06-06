@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { ArrowUpRight, ArrowDownLeft } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts'
 import { useStore } from '../../store'
 import { formatRupiah, MONTH_NAMES } from '../../lib/utils'
 import ContextSwitcher from '../Layout/ContextSwitcher'
@@ -7,11 +8,13 @@ import ContextSwitcher from '../Layout/ContextSwitcher'
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-white border border-gray-100 rounded-xl px-3 py-2 shadow-lg text-xs">
-      {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color }} className="font-semibold">
-          {p.name}: {formatRupiah(p.value, true)}
-        </p>
+    <div className="bg-white/95 backdrop-blur-sm p-2 rounded-xl shadow-lg border border-gray-100 space-y-1">
+      {payload.map((p,i) => (
+        <div key={i} className="flex items-center gap-1">
+          <span style={{ color: p.color || p.fill }} className="text-[8px] font-black">
+            {formatRupiah(p.value, true)}
+          </span>
+        </div>
       ))}
     </div>
   )
@@ -57,78 +60,85 @@ export default function Report() {
   const nextMonth = () => month === 11 ? (setMonth(0),  setYear(y=>y+1)) : setMonth(m=>m+1)
 
   return (
-    <div className="page-enter min-h-screen bg-white pb-24">
-
-      {/* ── HEADER ── */}
-      <div className="px-5 pt-14 pb-4 sticky top-0 bg-white z-40">
-        <div className="flex items-center justify-between mb-5">
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight">Laporan</h1>
-          <div className="flex items-center gap-3">
-            <button onClick={prevMonth} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center active:scale-90 transition-all">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="#666" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
-            <span className="text-sm font-semibold text-gray-700 w-28 text-center">{MONTH_NAMES[month]} {year}</span>
-            <button onClick={nextMonth} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center active:scale-90 transition-all">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="#666" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
-          </div>
+    <div className="page-enter min-h-screen bg-gray-50 pb-28">
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-gray-50 pt-12 pb-3 px-5">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-black text-gray-800">Statistik</h1>
         </div>
+
+        {/* Month nav */}
+        <div className="flex items-center justify-between bg-white rounded-full px-4 py-2.5 border border-gray-100 shadow-sm mb-4">
+          <button onClick={prevMonth} className="p-1 rounded-full hover:bg-gray-50 text-gray-500">
+            <ArrowDownLeft size={18} className="rotate-45" />
+          </button>
+          <span className="text-sm font-black text-gray-800 tracking-widest uppercase">
+            {MONTH_NAMES[month]} {year}
+          </span>
+          <button onClick={nextMonth} className={`p-1 rounded-full transition-colors ${month === now.getMonth() && year === now.getFullYear() ? 'opacity-30' : 'hover:bg-gray-50 text-gray-500'}`}>
+            <ArrowUpRight size={18} className="rotate-45" />
+          </button>
+        </div>
+
         <ContextSwitcher />
       </div>
 
-      <div className="px-5 space-y-8 mt-2">
-
-        {/* ── SUMMARY ── */}
-        <div className="grid grid-cols-3 gap-3">
+      <div className="px-5 space-y-4 mt-2">
+        {/* Summary */}
+        <div className="grid grid-cols-3 gap-2">
           {[
-            { label: 'Masuk',   val: totalIncome,                    color: 'text-brand-600' },
-            { label: 'Keluar',  val: totalExpense,                   color: 'text-gray-900'  },
-            { label: 'Selisih', val: totalIncome - totalExpense,     color: totalIncome-totalExpense >= 0 ? 'text-brand-600' : 'text-red-500' },
-          ].map(({ label, val, color }) => (
-            <div key={label} className="bg-gray-50 rounded-2xl p-4">
-              <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide mb-2">{label}</p>
-              <p className={`text-sm font-bold ${color} leading-tight`}>{formatRupiah(val, true)}</p>
+            { label:'Masuk',  val: totalIncome,           cls: 'text-green-700',   bg: 'bg-green-50 border-green-100' },
+            { label:'Keluar', val: totalExpense,           cls: 'text-red-700',     bg: 'bg-red-50 border-red-100'     },
+            { label:'Selisih',val: totalIncome-totalExpense, cls: totalIncome-totalExpense>=0?'text-blu-primary':'text-red-600', bg:'bg-white border-gray-100'},
+          ].map(({label,val,cls,bg}) => (
+            <div key={label} className={`${bg} border rounded-2xl p-3 shadow-sm`}>
+              <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1.5">{label}</p>
+              <p className={`text-sm font-black ${cls} leading-tight`}>{formatRupiah(val, true)}</p>
             </div>
           ))}
         </div>
 
-        {/* ── BAR CHART ── */}
+        {/* Bar chart */}
         {dailyData.length > 0 && (
-          <div>
-            <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide mb-4">Harian</p>
-            <ResponsiveContainer width="100%" height={140}>
+          <div className="blu-card">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-black text-gray-800 text-sm">Perbandingan Harian</h3>
+              <div className="flex items-center gap-3 text-[9px] font-black text-gray-400">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blu-primary inline-block" />Masuk</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blu-accent inline-block" />Keluar</span>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={160}>
               <BarChart data={dailyData} margin={{ top:0, right:0, left:-28, bottom:0 }} barGap={2}>
-                <CartesianGrid vertical={false} stroke="#f0f0f0" />
+                <CartesianGrid vertical={false} stroke="#f0f0f0" strokeDasharray="3 3" />
                 <XAxis dataKey="day" tick={{ fontSize:9, fill:'#bbb' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize:9, fill:'#bbb' }} axisLine={false} tickLine={false} tickFormatter={v => formatRupiah(v,true)} />
+                <YAxis tick={{ fontSize:9, fill:'#bbb' }} axisLine={false} tickLine={false} tickFormatter={v=>formatRupiah(v,true)} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill:'#f9fafb' }} />
-                <Bar dataKey="income"  name="Masuk"  fill="#16a34a" radius={[3,3,0,0]} />
-                <Bar dataKey="expense" name="Keluar" fill="#e5e7eb" radius={[3,3,0,0]} />
+                <Bar dataKey="income"  name="Masuk"  fill="#00AEEF" radius={[4,4,0,0]} barSize={10} />
+                <Bar dataKey="expense" name="Keluar" fill="#FFD700" radius={[4,4,0,0]} barSize={10} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         )}
 
-        {/* ── CATEGORY BREAKDOWN ── */}
+        {/* Category breakdown */}
         {byCategory.length > 0 && (
-          <div>
-            <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wide mb-4">Per Kategori</p>
+          <div className="blu-card">
+            <h3 className="font-black text-gray-800 text-sm mb-5">Pengeluaran per Kategori</h3>
             <div className="space-y-4">
               {byCategory.map(({ name, value }) => {
                 const pct = totalExpense > 0 ? (value / totalExpense) * 100 : 0
                 return (
                   <div key={name}>
                     <div className="flex justify-between items-baseline mb-1.5">
-                      <span className="text-sm text-gray-700 font-medium">{name}</span>
-                      <span className="text-sm font-semibold text-gray-900 tabular-nums">{formatRupiah(value, true)}</span>
+                      <span className="text-sm text-gray-700 font-bold">{name}</span>
+                      <span className="text-sm font-black text-gray-900 tabular-nums">{formatRupiah(value, true)}</span>
                     </div>
-                    <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gray-900 rounded-full transition-all duration-500"
-                        style={{ width: `${pct}%` }}
-                      />
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-blu-primary rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%` }} />
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1">{pct.toFixed(0)}% dari total pengeluaran</p>
+                    <p className="text-[10px] text-gray-400 mt-1">{pct.toFixed(0)}%</p>
                   </div>
                 )
               })}
@@ -138,7 +148,7 @@ export default function Report() {
 
         {filtered.length === 0 && (
           <div className="py-20 text-center">
-            <p className="text-gray-300 text-sm">Belum ada data</p>
+            <p className="text-gray-300 text-sm font-semibold">Belum ada data</p>
           </div>
         )}
       </div>

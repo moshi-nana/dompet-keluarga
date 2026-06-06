@@ -1,14 +1,22 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowUpRight, ArrowDownLeft, ChevronRight, Search, X, Moon, Sun } from 'lucide-react'
 import { useStore } from '../../store'
 import { formatRupiah, monthYear } from '../../lib/utils'
+import { useTheme } from '../../lib/theme.jsx'
 import ContextSwitcher from '../Layout/ContextSwitcher'
 import TransactionItem from '../Transaction/TransactionItem'
 
 export default function Dashboard() {
-  const { transactions, wallets, categories, activeContext, isOnline, isSyncing, fullSync } = useStore()
+  const { transactions, wallets, categories, activeContext, isOnline, fullSync, isSyncing } = useStore()
+  const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const now = new Date()
+
+  const [revealedId, setRevealedId] = useState(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const filtered = useMemo(() =>
     transactions.filter(t => {
@@ -18,105 +26,133 @@ export default function Dashboard() {
         && d.getFullYear() === now.getFullYear()
     }), [transactions, activeContext])
 
-  const income  = useMemo(() => filtered.filter(t => t.type === 'income').reduce((s,t)  => s + Number(t.amount), 0), [filtered])
+  const income  = useMemo(() => filtered.filter(t => t.type === 'income').reduce((s,t) => s + Number(t.amount), 0), [filtered])
   const expense = useMemo(() => filtered.filter(t => t.type === 'expense').reduce((s,t) => s + Number(t.amount), 0), [filtered])
   const totalBalance = useMemo(() => wallets.reduce((s,w) => s + Number(w.balance), 0), [wallets])
-  const net = income - expense
 
   const getCategoryName = id => categories.find(c => c.id === id)?.name || '—'
 
+  const displayTxs = useMemo(() => {
+    let list = [...filtered]
+    if (searchQuery) list = list.filter(t =>
+      (t.note || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      getCategoryName(t.category_id).toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    return list.slice(0, 6)
+  }, [filtered, searchQuery])
+
   return (
-    <div className="page-enter min-h-screen bg-white pb-24">
+    <div className="page-enter min-h-screen bg-gray-50 pb-28">
 
-      {/* ── TOP BAR ── */}
-      <div className="flex items-center justify-between px-5 pt-14 pb-2">
-        <div>
-          <p className="text-[11px] text-gray-400 font-medium tracking-wide uppercase">Saldo</p>
-          <h1 className="text-3xl font-bold tracking-tighter text-gray-900 leading-none mt-0.5">
-            {formatRupiah(totalBalance)}
-          </h1>
-        </div>
-        <button
-          onClick={fullSync}
-          disabled={isSyncing}
-          className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center active:scale-90 transition-all"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className={isSyncing ? 'animate-spin' : ''}>
-            <path d="M1 4v6h6M23 20v-6h-6" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"
-              stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      </div>
-
-      {/* Wallet pills */}
-      {wallets.length > 0 && (
-        <div className="flex gap-2 px-5 mt-3 overflow-x-auto scrollbar-hide">
-          {wallets.map(w => (
-            <div key={w.id} className="flex-shrink-0 border border-gray-100 rounded-full px-3.5 py-1.5 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-brand-600 flex-shrink-0" />
-              <span className="text-xs text-gray-500 font-medium whitespace-nowrap">{w.name}</span>
-              <span className="text-xs font-semibold text-gray-800">{formatRupiah(w.balance, true)}</span>
+      {/* ── HEADER (Blued style) ── */}
+      <header className="bg-blu-primary text-white px-6 pt-12 pb-8 rounded-b-[32px] shadow-lg relative overflow-hidden">
+        {/* Top bar */}
+        <div className="flex items-center justify-between mb-8">
+          {/* Avatar + greeting */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+              <span className="font-black text-xl text-blu-primary">D</span>
             </div>
-          ))}
+            <div>
+              <p className="text-xs text-white/80">Selamat Datang,</p>
+              <p className="font-bold text-sm">Dompet Keluarga</p>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <AnimatePresence>
+              {searchOpen && (
+                <motion.div initial={{ width:0,opacity:0 }} animate={{ width:160,opacity:1 }} exit={{ width:0,opacity:0 }} className="relative">
+                  <input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Cari..." className="w-full pl-3 pr-8 py-2 bg-white/20 rounded-full text-white text-sm placeholder-white/60 focus:outline-none" />
+                  <button onClick={() => { setSearchOpen(false); setSearchQuery('') }} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/60">
+                    <X size={14} />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {!searchOpen && (
+              <>
+                <button onClick={toggleTheme} className="p-2 bg-white/20 rounded-full">
+                  {theme === 'light' ? <Moon size={18} className="text-white" /> : <Sun size={18} className="text-white" />}
+                </button>
+                <button onClick={() => setSearchOpen(true)} className="p-2 bg-white/20 rounded-full">
+                  <Search size={18} className="text-white" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
-      )}
 
-      {/* Divider */}
-      <div className="mx-5 my-5 h-px bg-gray-100" />
+        {/* Balance */}
+        <div className="mb-6">
+          <p className="text-sm text-white/80 mb-1">Total Saldo</p>
+          <h2 className="text-3xl font-black tracking-tight">{formatRupiah(totalBalance)}</h2>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-400 animate-pulse' : 'bg-yellow-300'}`} />
+            <span className="text-xs text-white/70">{isOnline ? 'Online' : 'Offline'}</span>
+          </div>
+        </div>
 
-      {/* ── CONTEXT + MONTH ── */}
-      <div className="px-5">
+        {/* Income / Expense cards */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white/10 backdrop-blur-sm border border-white/10 p-4 rounded-2xl">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1 bg-green-500/20 rounded-md">
+                <ArrowDownLeft size={13} className="text-green-400" />
+              </div>
+              <span className="text-xs text-white/80">Pemasukan</span>
+            </div>
+            <p className="font-semibold text-sm">{formatRupiah(income, true)}</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm border border-white/10 p-4 rounded-2xl">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1 bg-red-500/20 rounded-md">
+                <ArrowUpRight size={13} className="text-red-400" />
+              </div>
+              <span className="text-xs text-white/80">Pengeluaran</span>
+            </div>
+            <p className="font-semibold text-sm">{formatRupiah(expense, true)}</p>
+          </div>
+        </div>
+      </header>
+
+      {/* ── BODY ── */}
+      <div className="px-5 pt-5">
         <ContextSwitcher className="mb-5" />
 
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-gray-50 rounded-2xl p-4">
-            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide mb-2">Masuk</p>
-            <p className="text-sm font-bold text-brand-600 leading-tight">{formatRupiah(income, true)}</p>
-          </div>
-          <div className="bg-gray-50 rounded-2xl p-4">
-            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide mb-2">Keluar</p>
-            <p className="text-sm font-bold text-gray-900 leading-tight">{formatRupiah(expense, true)}</p>
-          </div>
-          <div className="bg-gray-50 rounded-2xl p-4">
-            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide mb-2">Selisih</p>
-            <p className={`text-sm font-bold leading-tight ${net >= 0 ? 'text-brand-600' : 'text-red-500'}`}>
-              {net >= 0 ? '+' : ''}{formatRupiah(net, true)}
-            </p>
-          </div>
-        </div>
-
-        {/* ── RECENT TRANSACTIONS ── */}
+        {/* Recent transactions header */}
         <div className="flex items-center justify-between mb-4">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Terbaru · {monthYear(now)}</p>
-          <button onClick={() => navigate('/transactions')} className="text-xs text-gray-900 font-semibold underline underline-offset-2">
-            Semua
+          <h3 className="font-black text-gray-800 text-base uppercase tracking-widest text-xs">Transaksi Terbaru</h3>
+          <button onClick={() => navigate('/transactions')} className="text-blu-primary text-xs font-semibold flex items-center gap-0.5">
+            Lihat Semua <ChevronRight size={14} />
           </button>
         </div>
 
-        {filtered.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-gray-300 text-sm">Belum ada catatan bulan ini</p>
-            <button
-              onClick={() => navigate('/add')}
-              className="mt-4 bg-gray-900 text-white text-sm font-semibold px-5 py-2.5 rounded-full active:scale-95 transition-all"
-            >
-              Catat sekarang
-            </button>
-          </div>
-        ) : (
-          <div>
-            {filtered.slice(0, 6).map((tx, i) => (
+        <AnimatePresence>
+          {displayTxs.length === 0 ? (
+            <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} className="py-16 text-center">
+              <p className="text-gray-300 text-sm font-medium">Belum ada catatan bulan ini</p>
+              <button onClick={() => navigate('/add')}
+                className="mt-4 bg-blu-primary text-white text-sm font-bold px-6 py-3 rounded-2xl active:scale-95 transition-all shadow-lg shadow-blu-primary/25">
+                Catat Sekarang
+              </button>
+            </motion.div>
+          ) : (
+            displayTxs.map(tx => (
               <TransactionItem
                 key={tx.id}
                 tx={tx}
                 categoryName={getCategoryName(tx.category_id)}
-                last={i === Math.min(filtered.length, 6) - 1}
+                isRevealed={revealedId === tx.id}
+                onReveal={v => setRevealedId(v ? tx.id : null)}
+                onEdit={() => {}}
+                onDelete={() => useStore.getState().deleteTransaction(tx.id)}
               />
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

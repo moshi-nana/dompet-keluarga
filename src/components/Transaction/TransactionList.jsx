@@ -1,24 +1,42 @@
 import { useState, useMemo, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowUpRight, ArrowDownLeft, Search, X, TrendingUp, Moon, Sun } from 'lucide-react'
 import { useStore } from '../../store'
 import { formatRupiah, MONTH_NAMES } from '../../lib/utils'
+import { useTheme } from '../../lib/theme.jsx'
 import TransactionItem from './TransactionItem'
 import ContextSwitcher from '../Layout/ContextSwitcher'
 
 export default function TransactionList() {
-  const { transactions, categories, loadTransactions, activeContext } = useStore()
+  const { transactions, categories, loadTransactions, activeContext, deleteTransaction } = useStore()
+  const { theme, toggleTheme } = useTheme()
   const now = new Date()
-  const [month, setMonth] = useState(now.getMonth())
-  const [year,  setYear]  = useState(now.getFullYear())
+  const [month, setMonth]   = useState(now.getMonth())
+  const [year, setYear]     = useState(now.getFullYear())
+  const [revealedId, setRevealedId] = useState(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortOrder, setSortOrder] = useState('desc')
 
   useEffect(() => { loadTransactions({ month, year }) }, [month, year])
+  useEffect(() => { setRevealedId(null) }, [activeContext])
 
   const getCategoryName = id => categories.find(c => c.id === id)?.name || '—'
 
-  const filtered = useMemo(() =>
-    transactions.filter(t => {
+  const filtered = useMemo(() => {
+    let list = transactions.filter(t => {
       const d = new Date(t.date + 'T00:00:00')
       return t.context === activeContext && d.getMonth() === month && d.getFullYear() === year
-    }), [transactions, activeContext, month, year])
+    })
+    if (searchQuery) list = list.filter(t =>
+      (t.note || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      getCategoryName(t.category_id).toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    return [...list].sort((a, b) => sortOrder === 'desc'
+      ? new Date(b.date) - new Date(a.date)
+      : new Date(a.date) - new Date(b.date)
+    )
+  }, [transactions, activeContext, month, year, searchQuery, sortOrder])
 
   const grouped = useMemo(() => {
     const map = {}
@@ -37,78 +55,109 @@ export default function TransactionList() {
     const today = new Date(), yday = new Date(); yday.setDate(yday.getDate()-1)
     if (d.toDateString() === today.toDateString()) return 'Hari Ini'
     if (d.toDateString() === yday.toDateString())  return 'Kemarin'
-    return new Intl.DateTimeFormat('id-ID', { weekday:'short', day:'numeric', month:'short' }).format(d)
+    return new Intl.DateTimeFormat('id-ID', { weekday:'long', day:'numeric', month:'short' }).format(d)
   }
 
   return (
-    <div className="page-enter min-h-screen bg-white pb-24">
-
-      {/* ── HEADER ── */}
-      <div className="px-5 pt-14 pb-4 sticky top-0 bg-white z-40">
-        <div className="flex items-center justify-between mb-5">
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight">Transaksi</h1>
-          {/* Month nav */}
-          <div className="flex items-center gap-3">
-            <button onClick={prevMonth} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center active:scale-90 transition-all">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                <path d="M15 18l-6-6 6-6" stroke="#666" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+    <div className="page-enter min-h-screen bg-gray-50 pb-28">
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-gray-50 pt-12 pb-3 px-5">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-black text-gray-800">Catatan Riwayat</h1>
+          <div className="flex items-center gap-2">
+            <button onClick={toggleTheme} className="p-2 bg-white rounded-xl shadow-sm text-gray-400 hover:text-blu-primary transition-colors">
+              {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
             </button>
-            <span className="text-sm font-semibold text-gray-700 w-28 text-center">
-              {MONTH_NAMES[month]} {year}
-            </span>
-            <button onClick={nextMonth} className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center active:scale-90 transition-all">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                <path d="M9 18l6-6-6-6" stroke="#666" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+            <AnimatePresence>
+              {searchOpen && (
+                <motion.div initial={{ width:0,opacity:0 }} animate={{ width:160,opacity:1 }} exit={{ width:0,opacity:0 }} className="relative">
+                  <input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Cari..." className="w-full pl-3 pr-8 py-2 bg-white rounded-xl shadow-sm text-sm focus:outline-none" />
+                  <button onClick={() => { setSearchOpen(false); setSearchQuery('') }} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
+                    <X size={14} />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {!searchOpen && (
+              <button onClick={() => setSearchOpen(true)} className="p-2 bg-white rounded-xl shadow-sm text-gray-400">
+                <Search size={18} />
+              </button>
+            )}
+            <button onClick={() => setSortOrder(v => v === 'asc' ? 'desc' : 'asc')}
+              className="p-2 bg-white rounded-xl shadow-sm text-gray-400">
+              <TrendingUp size={18} className={sortOrder === 'asc' ? 'rotate-180' : ''} />
             </button>
           </div>
         </div>
 
-        <ContextSwitcher className="mb-4" />
+        {/* Month nav */}
+        <div className="flex items-center justify-between bg-white rounded-full px-4 py-2.5 border border-gray-100 shadow-sm mb-4">
+          <button onClick={prevMonth} className="p-1 rounded-full hover:bg-gray-50 text-gray-500">
+            <ArrowDownLeft size={18} className="rotate-45" />
+          </button>
+          <span className="text-sm font-black text-gray-800 tracking-widest uppercase">
+            {MONTH_NAMES[month]} {year}
+          </span>
+          <button onClick={nextMonth} className={`p-1 rounded-full transition-colors ${month === now.getMonth() && year === now.getFullYear() ? 'opacity-30' : 'hover:bg-gray-50 text-gray-500'}`}>
+            <ArrowUpRight size={18} className="rotate-45" />
+          </button>
+        </div>
+
+        <ContextSwitcher className="mb-3" />
 
         {/* Summary strip */}
-        <div className="flex gap-4 py-3 border-y border-gray-50">
-          <div className="flex-1">
-            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Masuk</p>
-            <p className="text-sm font-bold text-brand-600 mt-0.5">{formatRupiah(totalIncome, true)}</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-green-50 border border-green-100 rounded-2xl p-3 shadow-sm">
+            <div className="flex items-center gap-1.5 mb-1">
+              <div className="p-1 bg-green-500/20 rounded-md">
+                <ArrowDownLeft size={11} className="text-green-600" />
+              </div>
+              <p className="text-[9px] font-black text-green-600 uppercase tracking-wider">Pemasukan</p>
+            </div>
+            <p className="text-base font-black text-green-700">{formatRupiah(totalIncome, true)}</p>
           </div>
-          <div className="w-px bg-gray-100" />
-          <div className="flex-1">
-            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Keluar</p>
-            <p className="text-sm font-bold text-gray-900 mt-0.5">{formatRupiah(totalExpense, true)}</p>
-          </div>
-          <div className="w-px bg-gray-100" />
-          <div className="flex-1">
-            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Selisih</p>
-            <p className={`text-sm font-bold mt-0.5 ${totalIncome-totalExpense >= 0 ? 'text-brand-600' : 'text-red-500'}`}>
-              {formatRupiah(totalIncome-totalExpense, true)}
-            </p>
+          <div className="bg-red-50 border border-red-100 rounded-2xl p-3 shadow-sm">
+            <div className="flex items-center gap-1.5 mb-1">
+              <div className="p-1 bg-red-500/20 rounded-md">
+                <ArrowUpRight size={11} className="text-red-600" />
+              </div>
+              <p className="text-[9px] font-black text-red-600 uppercase tracking-wider">Pengeluaran</p>
+            </div>
+            <p className="text-base font-black text-red-700">{formatRupiah(totalExpense, true)}</p>
           </div>
         </div>
       </div>
 
-      {/* ── LIST ── */}
-      <div className="px-5">
+      {/* List */}
+      <div className="px-5 mt-2">
         {grouped.length === 0 ? (
-          <div className="py-20 text-center">
-            <p className="text-gray-300 text-sm">Tidak ada transaksi</p>
-          </div>
+          <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} className="py-20 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search size={28} className="text-gray-300" />
+            </div>
+            <p className="text-gray-400 text-sm font-semibold">Tidak ada transaksi</p>
+          </motion.div>
         ) : (
           grouped.map(([date, txs]) => (
-            <div key={date} className="mb-6">
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-3">
-                {formatGroupDate(date)}
-              </p>
-              {txs.map((tx, i) => (
-                <TransactionItem
-                  key={tx.id}
-                  tx={tx}
-                  categoryName={getCategoryName(tx.category_id)}
-                  last={i === txs.length - 1}
-                  showDelete
-                />
-              ))}
+            <div key={date} className="mb-5">
+              <div className="flex items-center justify-between mb-2 px-1">
+                <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">{formatGroupDate(date)}</p>
+                <p className="text-[10px] text-gray-300">{txs.length} transaksi</p>
+              </div>
+              <AnimatePresence>
+                {txs.map(tx => (
+                  <TransactionItem
+                    key={tx.id}
+                    tx={tx}
+                    categoryName={getCategoryName(tx.category_id)}
+                    isRevealed={revealedId === tx.id}
+                    onReveal={v => setRevealedId(v ? tx.id : null)}
+                    onEdit={() => {}}
+                    onDelete={() => { if(confirm('Hapus transaksi ini?')) deleteTransaction(tx.id) }}
+                  />
+                ))}
+              </AnimatePresence>
             </div>
           ))
         )}
