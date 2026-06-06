@@ -3,9 +3,8 @@ import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus } from 'lucide-react'
 
-// ── Icons ─────────────────────────────────────────────────────────────────────
 function WalletIcon({ active }) {
-  const c = active ? '#00AEEF' : '#9ca3af', w = active ? 2.2 : 1.5
+  const c = active ? 'var(--blu-primary)' : 'var(--text-muted)', w = active ? 2.2 : 1.5
   return (
     <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
       <rect x="2" y="7" width="20" height="14" rx="3" stroke={c} strokeWidth={w}/>
@@ -15,7 +14,7 @@ function WalletIcon({ active }) {
   )
 }
 function HistoryIcon({ active }) {
-  const c = active ? '#00AEEF' : '#9ca3af', w = active ? 2.2 : 1.5
+  const c = active ? 'var(--blu-primary)' : 'var(--text-muted)', w = active ? 2.2 : 1.5
   return (
     <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
       <circle cx="12" cy="12" r="9" stroke={c} strokeWidth={w}/>
@@ -24,7 +23,7 @@ function HistoryIcon({ active }) {
   )
 }
 function ChartIcon({ active }) {
-  const c = active ? '#00AEEF' : '#9ca3af', w = active ? 2.2 : 1.5
+  const c = active ? 'var(--blu-primary)' : 'var(--text-muted)', w = active ? 2.2 : 1.5
   return (
     <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
       <rect x="3"  y="12" width="4" height="9" rx="1.5" stroke={c} strokeWidth={w}/>
@@ -34,7 +33,7 @@ function ChartIcon({ active }) {
   )
 }
 function PersonIcon({ active }) {
-  const c = active ? '#00AEEF' : '#9ca3af', w = active ? 2.2 : 1.5
+  const c = active ? 'var(--blu-primary)' : 'var(--text-muted)', w = active ? 2.2 : 1.5
   return (
     <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
       <circle cx="12" cy="7.5" r="3.5" stroke={c} strokeWidth={w}/>
@@ -50,13 +49,12 @@ const NAV = [
   { to: '/settings',     label: 'Profil',   Icon: PersonIcon  },
 ]
 
-// ── FAB ───────────────────────────────────────────────────────────────────────
 function FAB() {
-  const navigate  = useNavigate()
-  const location  = useLocation()
-  const [open,   setOpen]  = useState(false)
-  const [scale,  setScale] = useState(1)
-  const timeout  = useRef(null)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [open,  setOpen]  = useState(false)
+  const [scale, setScale] = useState(1)
+  const timeout = useRef(null)
 
   if (location.pathname === '/add') return null
 
@@ -65,82 +63,68 @@ function FAB() {
     clearTimeout(timeout.current)
     timeout.current = setTimeout(() => { setScale(1); setOpen(v => !v) }, 100)
   }
-
   const goAdd = () => { setOpen(false); navigate('/add') }
 
   return (
     <>
-      {/* Backdrop */}
       <AnimatePresence>
         {open && (
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <motion.div key="bd"
+            initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
             onClick={() => setOpen(false)}
-            style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.25)',
-                     backdropFilter:'blur(3px)', zIndex:89 }}
-          />
+            style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.3)',
+                     backdropFilter:'blur(3px)', zIndex:89 }} />
         )}
       </AnimatePresence>
 
-      {/* FAB stack */}
       <div style={{
-        position: 'fixed',
-        right: 20,
-        bottom: 'calc(env(safe-area-inset-bottom,0px) + 88px)',
-        zIndex: 100,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
+        position:'fixed', right:20,
+        bottom:'calc(env(safe-area-inset-bottom,0px) + 88px)',
+        zIndex:100, display:'flex', flexDirection:'column', alignItems:'center', gap:12,
       }}>
         <AnimatePresence>
           {open && (
-            <motion.button
-              key="add-btn"
-              initial={{ opacity:0, y:16, scale:0.4 }}
+            <motion.button key="add"
+              initial={{ opacity:0, y:16, scale:0.3 }}
               animate={{ opacity:1, y:0,  scale:1   }}
-              exit={{    opacity:0, y:16, scale:0.4 }}
-              transition={{ type:'spring', stiffness:600, damping:25 }}
+              exit={{    opacity:0, y:16, scale:0.3 }}
+              transition={{ type:'spring', stiffness:600, damping:22 }}
               onClick={goAdd}
               style={{
-                width:48, height:48, borderRadius:'50%',
-                background:'#FFD700', border:'none', cursor:'pointer',
+                width:48, height:48, borderRadius:'50%', background:'#FFD700',
+                border:'none', cursor:'pointer',
                 display:'flex', alignItems:'center', justifyContent:'center',
-                boxShadow:'0 4px 16px rgba(255,215,0,0.5)',
+                boxShadow:'0 4px 20px rgba(255,215,0,0.5)',
                 WebkitTapHighlightColor:'transparent',
-              }}
-            >
+              }}>
               <Plus size={22} color="#005696" strokeWidth={3}/>
             </motion.button>
           )}
         </AnimatePresence>
 
-        {/* Main FAB */}
-        <button
-          onPointerDown={toggle}
-          style={{
-            width:56, height:56, borderRadius:'50%',
-            background: open ? '#1f2937' : '#00AEEF',
-            border:'none', cursor:'pointer',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            boxShadow:'0 6px 24px rgba(0,174,239,0.4)',
-            transform:`scale(${scale}) rotate(${open?'45deg':'0deg'})`,
-            transition:'transform 0.2s cubic-bezier(0.34,1.56,0.64,1), background 0.2s',
-            WebkitTapHighlightColor:'transparent',
-            position:'relative', overflow:'hidden',
-          }}
-        >
+        <button onPointerDown={toggle} style={{
+          width:56, height:56, borderRadius:'50%',
+          background: open ? 'var(--bg-card)' : 'var(--blu-primary)',
+          border: open ? '2px solid var(--border-color)' : 'none',
+          cursor:'pointer',
+          display:'flex', alignItems:'center', justifyContent:'center',
+          boxShadow: open ? '0 4px 16px rgba(0,0,0,0.15)' : '0 6px 24px rgba(0,174,239,0.35)',
+          transform:`scale(${scale}) rotate(${open?'45deg':'0deg'})`,
+          transition:'transform 0.22s cubic-bezier(0.34,1.56,0.64,1), background 0.25s, box-shadow 0.2s',
+          WebkitTapHighlightColor:'transparent', position:'relative', overflow:'hidden',
+        }}>
           <div style={{
             position:'absolute', top:0, left:0, right:0, height:'50%',
-            background:'linear-gradient(180deg,rgba(255,255,255,0.18) 0%,transparent 100%)',
+            background:'linear-gradient(180deg,rgba(255,255,255,0.15) 0%,transparent 100%)',
             borderRadius:'50% 50% 0 0', pointerEvents:'none',
           }}/>
-          <Plus size={26} color="#fff" strokeWidth={2.5}/>
+          <Plus size={26} color={open ? 'var(--text-primary)' : '#fff'} strokeWidth={2.5}/>
         </button>
       </div>
     </>
   )
 }
 
-// ── BOTTOM NAV ────────────────────────────────────────────────────────────────
 export default function BottomNav() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -150,62 +134,42 @@ export default function BottomNav() {
     <>
       <FAB />
       <nav style={{
-        position: 'fixed',
-        bottom: 0, left: 0, right: 0,
-        background: '#ffffff',
-        borderTop: '1px solid #f0f0f0',
-        borderRadius: '24px 24px 0 0',
-        boxShadow: '0 -8px 32px rgba(0,0,0,0.07)',
-        paddingBottom: 'env(safe-area-inset-bottom, 8px)',
-        zIndex: 50,
+        position:'fixed', bottom:0, left:0, right:0,
+        background:'var(--nav-bg)',
+        borderTop:'1px solid var(--border-subtle)',
+        borderRadius:'24px 24px 0 0',
+        boxShadow:'0 -8px 32px rgba(0,0,0,0.08)',
+        paddingBottom:'env(safe-area-inset-bottom, 8px)',
+        zIndex:50,
+        transition:'background 0.3s ease',
       }}>
-        <div style={{
-          display: 'flex',
-          maxWidth: 448,
-          margin: '0 auto',
-          padding: '8px 0 4px',
-        }}>
+        <div style={{ display:'flex', maxWidth:448, margin:'0 auto', padding:'8px 0 4px' }}>
           {NAV.map(({ to, label, Icon }) => {
             const active = location.pathname === to
             return (
-              <button
-                key={to}
-                onClick={() => navigate(to)}
-                style={{
-                  flex: 1,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  gap: 4, padding: '6px 0',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  WebkitTapHighlightColor: 'transparent',
-                  minWidth: 0,
-                }}
-              >
-                {/* Icon with active pill */}
+              <button key={to} onClick={() => navigate(to)} style={{
+                flex:1, display:'flex', flexDirection:'column', alignItems:'center',
+                gap:4, padding:'6px 0',
+                background:'none', border:'none', cursor:'pointer',
+                WebkitTapHighlightColor:'transparent', minWidth:0,
+              }}>
                 <div style={{
-                  padding: '6px 14px', borderRadius: 14,
+                  padding:'6px 14px', borderRadius:14,
                   background: active ? 'rgba(0,174,239,0.1)' : 'transparent',
-                  transition: 'background 0.2s',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition:'background 0.2s',
                 }}>
                   <Icon active={active} />
                 </div>
-                {/* Label — fixed size prevents layout shift */}
                 <span style={{
-                  fontSize: 10,
+                  fontSize:10, display:'block', width:'100%', textAlign:'center',
                   fontWeight: active ? 800 : 500,
-                  color: active ? '#00AEEF' : '#9ca3af',
-                  fontFamily: 'Inter, sans-serif',
+                  color: active ? 'var(--blu-primary)' : 'var(--text-muted)',
+                  fontFamily:'Inter, sans-serif',
                   letterSpacing: active ? '0.04em' : 0,
-                  lineHeight: 1,
+                  lineHeight:1,
                   textTransform: active ? 'uppercase' : 'none',
-                  display: 'block',
-                  width: '100%',
-                  textAlign: 'center',
-                  transition: 'color 0.2s',
-                  // Fixed min-width stops label from resizing the column
-                  minWidth: 0,
-                  overflow: 'hidden',
-                  whiteSpace: 'nowrap',
+                  whiteSpace:'nowrap', overflow:'hidden',
+                  transition:'color 0.2s',
                 }}>
                   {label}
                 </span>

@@ -5,14 +5,13 @@ export default {
     extend: {
       colors: {
         blu: {
-          primary: '#00AEEF',
-          dark:    '#005696',
-          light:   '#E6F7FF',
+          // Light mode: vivid blue
+          primary: 'var(--blu-primary)',
+          dark:    'var(--blu-dark)',
+          light:   'var(--blu-light)',
           accent:  '#FFD700',
         },
-        brand: {
-          600: '#16a34a',
-        }
+        brand: { 600: '#16a34a' }
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
